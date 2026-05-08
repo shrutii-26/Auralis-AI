@@ -1,0 +1,27 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #080b10;
+  --surface:    #0e1520;
+  --border:     #1c2a3a;
+  --text:       #e2e8f0;
+  --muted:      #64748b;
+  --accent:     #00d4ff;
+  --anger:      #ef4444;
+  --frustration:#f97316;
+  --sadness:    #6366f1;
+  --happiness:  #22c55e;
+  --excitement: #eab308;
+  --neutral:    #64748b;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }

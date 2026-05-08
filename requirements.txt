@@ -1,0 +1,26 @@
+# ── Orchestration ─────────────────────────────
+langgraph
+langchain
+langchain-ollama
+langchain-core
+
+# ── ASR ───────────────────────────────────────
+openai-whisper
+torch
+
+# ── Audio Processing ──────────────────────────
+librosa
+soundfile
+numpy
+
+# ── Memory ────────────────────────────────────
+SQLAlchemy
+
+# ── Backend ───────────────────────────────────
+fastapi
+uvicorn
+python-multipart
+
+# ── Utilities ─────────────────────────────────
+pydantic
+python-dotenv

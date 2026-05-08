@@ -1,0 +1,112 @@
+import os
+import uuid
+import shutil
+import subprocess
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from graph import run_pipeline
+
+app = FastAPI(
+    title="Auralis AI",
+    description="Multi-agent GenAI framework for emotion-aware conversational analysis and adaptive response orchestration.",
+    version="1.0.0",
+)
+
+# CORS — allows frontend to talk to backend without proxy issues
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "temp_audio")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+def convert_to_wav(input_path: str) -> str:
+    output_path = input_path.rsplit(".", 1)[0] + "_converted.wav"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            input_path,
+            "-ar",
+            "16000",
+            "-ac",
+            "1",
+            "-f",
+            "wav",
+            output_path,
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return output_path
+
+
+@app.get("/")
+def root():
+    return {"status": "running", "service": "Auralis AI"}
+
+
+@app.post("/analyze")
+async def analyze_audio(
+    file: UploadFile = File(...), session_id: str = Form(default=None)
+):
+    sid = session_id or str(uuid.uuid4())
+    audio_path = os.path.join(UPLOAD_DIR, f"{sid}_{file.filename}")
+    wav_path = None
+
+    with open(audio_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    try:
+        wav_path = convert_to_wav(audio_path)
+        result = run_pipeline(audio_path=wav_path, session_id=sid)
+
+        return JSONResponse(
+            {
+                "session_id": sid,
+                "transcript": result.get("transcript"),
+                "asr_confidence": result.get("asr_confidence"),
+                "emotion": result.get("emotion_result"),
+                "intent": result.get("intent_result"),
+                "escalation_risk": result.get("escalation_risk"),
+                "emotion_retry_count": result.get("emotion_retry_count", 0),
+                "priority": result.get("priority"),
+                "action": result.get("final_action"),
+                "response": result.get("response_text"),
+                "error": result.get("error_message"),
+            }
+        )
+
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(
+            status_code=400, detail=f"Audio conversion failed: {e.stderr.decode()}"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+        if wav_path and os.path.exists(wav_path):
+            os.remove(wav_path)
+
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
