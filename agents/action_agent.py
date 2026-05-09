@@ -28,19 +28,24 @@ def action_agent(state: AgentState) -> dict:
     final_action = state.get("final_action", "respond")
     priority = state.get("priority", "low")
     transcript = state.get("transcript", "")
-    emotion_result = state.get("emotion_result", {})
-    intent_result = state.get("intent_result", {})
+    emotion_result = state.get("emotion_result") or {}
+    intent_result = state.get("intent_result") or {}
     escalation_risk = state.get("escalation_risk", 0.0)
-    session_history = state.get("session_history", [])
+    session_history = state.get("session_history") or []
+
+    # --- CLARIFY PATH (low ASR confidence) ---
+    if final_action == "clarify":
+        print("[Action Agent] Low confidence — asking for clarification")
+        return {
+            "response_text": state.get(
+                "response_text",
+                "I couldn't understand the audio clearly. Could you please repeat?",
+            )
+        }
 
     # --- ESCALATION PATH ---
     if final_action == "escalate":
         print("[Action Agent] Escalating to human operator...")
-        history_summary = ""
-        if session_history:
-            emotions_seen = [t.get("emotion") for t in session_history]
-            history_summary = f"Emotion progression: {' -> '.join(emotions_seen)}"
-
         return {
             "response_text": "I understand this has been frustrating. Let me connect you with a specialist right away.",
             "final_action": "escalate",
@@ -49,7 +54,7 @@ def action_agent(state: AgentState) -> dict:
 
     # --- RESPOND PATH ---
     try:
-        model_name = os.getenv("RESPONSE_MODEL", "llama3:latest")
+        model_name = os.getenv("RESPONSE_MODEL", "qwen2.5:3b")
         llm = ChatOllama(
             model=model_name,
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
@@ -58,8 +63,8 @@ def action_agent(state: AgentState) -> dict:
 
         context = f"""
 Transcript: {transcript}
-Detected Emotion: {emotion_result.get('emotion', 'neutral')} (intensity: {emotion_result.get('intensity', 0)})
-User Intent: {intent_result.get('intent', 'inquiry')}
+Detected Emotion: {emotion_result.get('emotion', 'unknown')} (intensity: {emotion_result.get('intensity', 0)})
+User Intent: {intent_result.get('intent', 'unknown')}
 Summary: {intent_result.get('summary', '')}
 """
         messages = [
