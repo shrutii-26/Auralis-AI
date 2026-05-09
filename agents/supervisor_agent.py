@@ -1,7 +1,7 @@
 from state import AgentState
 
 # ── Thresholds ──────────────────────────────────
-ASR_CONFIDENCE_THRESHOLD = 0.3
+ASR_CONFIDENCE_THRESHOLD = 0.4
 ESCALATION_RISK_THRESHOLD = 0.75
 ANGER_INTENSITY_THRESHOLD = 0.80
 

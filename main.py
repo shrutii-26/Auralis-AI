@@ -2,10 +2,12 @@ import os
 import uuid
 import shutil
 import subprocess
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 load_dotenv()
 
@@ -17,7 +19,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS — allows frontend to talk to backend without proxy issues
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,6 +29,11 @@ app.add_middleware(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "temp_audio")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# DB connection for history endpoint
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./memory.db")
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(bind=engine)
 
 
 def convert_to_wav(input_path: str) -> str:
@@ -99,6 +105,69 @@ async def analyze_audio(
             os.remove(audio_path)
         if wav_path and os.path.exists(wav_path):
             os.remove(wav_path)
+
+
+@app.get("/history/{session_id}")
+def get_session_history(session_id: str):
+    """Returns full conversation history for a session."""
+    db = SessionLocal()
+    try:
+        from agents.memory_agent import ConversationTurn
+
+        turns = (
+            db.query(ConversationTurn)
+            .filter_by(session_id=session_id)
+            .order_by(ConversationTurn.timestamp)
+            .all()
+        )
+
+        return JSONResponse(
+            [
+                {
+                    "transcript": t.transcript,
+                    "emotion": t.emotion,
+                    "emotion_confidence": t.emotion_confidence,
+                    "intent": t.intent,
+                    "escalation_risk": t.escalation_risk,
+                    "timestamp": t.timestamp.isoformat() if t.timestamp else None,
+                }
+                for t in turns
+            ]
+        )
+    finally:
+        db.close()
+
+
+@app.get("/sessions")
+def list_sessions():
+    """Returns all unique session IDs with turn counts."""
+    db = SessionLocal()
+    try:
+        from agents.memory_agent import ConversationTurn
+        from sqlalchemy import func
+
+        results = (
+            db.query(
+                ConversationTurn.session_id,
+                func.count(ConversationTurn.id).label("turns"),
+                func.max(ConversationTurn.timestamp).label("last_active"),
+            )
+            .group_by(ConversationTurn.session_id)
+            .all()
+        )
+
+        return JSONResponse(
+            [
+                {
+                    "session_id": r.session_id,
+                    "turns": r.turns,
+                    "last_active": r.last_active.isoformat() if r.last_active else None,
+                }
+                for r in results
+            ]
+        )
+    finally:
+        db.close()
 
 
 @app.get("/health")

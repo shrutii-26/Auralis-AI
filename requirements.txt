@@ -13,6 +13,10 @@ librosa
 soundfile
 numpy
 
+# ── ML Model ──────────────────────────────────
+scikit-learn
+joblib
+
 # ── Memory ────────────────────────────────────
 SQLAlchemy
 
