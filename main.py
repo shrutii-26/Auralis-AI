@@ -30,9 +30,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "temp_audio")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# DB connection for history endpoint
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./memory.db")
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+DATABASE_URL = os.getenv("DATABASE_URL")
+# SQLite needs check_same_thread=False, Postgres doesn't
+connect_args = (
+    {"check_same_thread": False}
+    if DATABASE_URL and DATABASE_URL.startswith("sqlite")
+    else {}
+)
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine)
 
 
@@ -61,6 +66,11 @@ def convert_to_wav(input_path: str) -> str:
 @app.get("/")
 def root():
     return {"status": "running", "service": "Auralis AI"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
 
 
 @app.post("/analyze")
@@ -109,7 +119,6 @@ async def analyze_audio(
 
 @app.get("/history/{session_id}")
 def get_session_history(session_id: str):
-    """Returns full conversation history for a session."""
     db = SessionLocal()
     try:
         from agents.memory_agent import ConversationTurn
@@ -120,7 +129,6 @@ def get_session_history(session_id: str):
             .order_by(ConversationTurn.timestamp)
             .all()
         )
-
         return JSONResponse(
             [
                 {
@@ -140,7 +148,6 @@ def get_session_history(session_id: str):
 
 @app.get("/sessions")
 def list_sessions():
-    """Returns all unique session IDs with turn counts."""
     db = SessionLocal()
     try:
         from agents.memory_agent import ConversationTurn
@@ -155,7 +162,6 @@ def list_sessions():
             .group_by(ConversationTurn.session_id)
             .all()
         )
-
         return JSONResponse(
             [
                 {
@@ -168,11 +174,6 @@ def list_sessions():
         )
     finally:
         db.close()
-
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
 
 
 if __name__ == "__main__":

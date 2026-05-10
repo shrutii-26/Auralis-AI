@@ -1,6 +1,6 @@
 import os
 import json
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from state import AgentState
 
@@ -23,17 +23,16 @@ Respond ONLY in valid JSON, no extra text, no markdown:
 
 def intent_agent(state: AgentState) -> dict:
     """Returns ONLY the fields it updates — required for parallel execution."""
-    print("[Intent Agent] Detecting intent...")
+    print("[Intent Agent] Detecting intent via Groq...")
 
     transcript = state.get("transcript")
     if not transcript:
         return {"error_message": "No transcript available for intent detection"}
 
     try:
-        model_name = os.getenv("INTENT_MODEL", "mistral:latest")
-        llm = ChatOllama(
-            model=model_name,
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        llm = ChatGroq(
+            model=os.getenv("INTENT_MODEL", "llama-3.1-8b-instant"),
+            api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1,
         )
 
@@ -45,6 +44,7 @@ def intent_agent(state: AgentState) -> dict:
         response = llm.invoke(messages)
         raw = response.content.strip()
 
+        # Strip markdown fences if present
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):

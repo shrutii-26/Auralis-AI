@@ -30,9 +30,9 @@ def memory_agent(state: AgentState) -> dict:
     print("[Memory Agent] Updating session memory...")
 
     session_id = state.get("session_id", "default")
-    emotion_result = state.get("emotion_result", {})
-    intent_result = state.get("intent_result", {})
-    transcript = state.get("transcript", "")
+    emotion_result = state.get("emotion_result") or {}
+    intent_result = state.get("intent_result") or {}
+    transcript = state.get("transcript") or ""
 
     db = SessionLocal()
 
@@ -56,8 +56,8 @@ def memory_agent(state: AgentState) -> dict:
         ]
 
         HIGH_RISK_EMOTIONS = {"anger", "frustration"}
-        current_emotion = emotion_result.get("emotion", "neutral")
-        current_intensity = emotion_result.get("intensity", 0.0)
+        current_emotion = (emotion_result.get("emotion") or "neutral").lower()
+        current_intensity = float(emotion_result.get("intensity") or 0.0)
 
         recent_high_risk = sum(
             1 for t in past_turns[-3:] if t.emotion in HIGH_RISK_EMOTIONS
@@ -77,8 +77,8 @@ def memory_agent(state: AgentState) -> dict:
             session_id=session_id,
             transcript=transcript,
             emotion=current_emotion,
-            emotion_confidence=emotion_result.get("confidence", 0.0),
-            intent=intent_result.get("intent", "unknown"),
+            emotion_confidence=float(emotion_result.get("confidence") or 0.0),
+            intent=intent_result.get("intent") or "unknown",
             escalation_risk=escalation_risk,
         )
         db.add(new_turn)

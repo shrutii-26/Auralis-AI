@@ -1,6 +1,6 @@
 import os
 import json
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from state import AgentState
 
@@ -23,17 +23,15 @@ Respond ONLY in JSON:
 
 def action_agent(state: AgentState) -> dict:
     """Returns only changed fields."""
-    print("[Action Agent] Generating final output...")
+    print("[Action Agent] Generating final output via Groq...")
 
     final_action = state.get("final_action", "respond")
     priority = state.get("priority", "low")
     transcript = state.get("transcript", "")
     emotion_result = state.get("emotion_result") or {}
     intent_result = state.get("intent_result") or {}
-    escalation_risk = state.get("escalation_risk", 0.0)
-    session_history = state.get("session_history") or []
 
-    # --- CLARIFY PATH (low ASR confidence) ---
+    # --- CLARIFY PATH ---
     if final_action == "clarify":
         print("[Action Agent] Low confidence — asking for clarification")
         return {
@@ -54,10 +52,9 @@ def action_agent(state: AgentState) -> dict:
 
     # --- RESPOND PATH ---
     try:
-        model_name = os.getenv("RESPONSE_MODEL", "qwen2.5:3b")
-        llm = ChatOllama(
-            model=model_name,
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        llm = ChatGroq(
+            model=os.getenv("RESPONSE_MODEL", "llama-3.1-8b-instant"),
+            api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.7,
         )
 

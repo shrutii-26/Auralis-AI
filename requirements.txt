@@ -1,12 +1,8 @@
 # ── Orchestration ─────────────────────────────
 langgraph
 langchain
-langchain-ollama
+langchain-groq
 langchain-core
-
-# ── ASR ───────────────────────────────────────
-openai-whisper
-torch
 
 # ── Audio Processing ──────────────────────────
 librosa
@@ -19,6 +15,7 @@ joblib
 
 # ── Memory ────────────────────────────────────
 SQLAlchemy
+psycopg2-binary
 
 # ── Backend ───────────────────────────────────
 fastapi
@@ -28,3 +25,5 @@ python-multipart
 # ── Utilities ─────────────────────────────────
 pydantic
 python-dotenv
+groq
+ffmpeg-python
