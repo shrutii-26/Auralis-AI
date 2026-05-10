@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Mic, MicOff, Upload, AlertTriangle, CheckCircle, Clock, TrendingUp, MessageSquare, Brain, Zap, Square, Radio, History, ChevronDown, ChevronUp } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const EMOTION_COLOR = {
   angry:'#ef4444', frustration:'#f97316', sad:'#6366f1', happy:'#22c55e',
   excited:'#eab308', neutral:'#64748b', calm:'#06b6d4', fearful:'#a855f7',
@@ -40,7 +42,7 @@ async function sendAudioBlob(blob, sessionId) {
   const form = new FormData()
   form.append('file', file)
   form.append('session_id', sessionId)
-  const res = await fetch('/analyze', { method:'POST', body:form })
+  const res = await fetch(`${API_BASE}/analyze`, { method:'POST', body:form })
   return res.json()
 }
 
@@ -155,7 +157,7 @@ function Uploader({ onResult, loading, setLoading, sessionId }) {
   const handleSubmit = async () => {
     if (!file) return; setLoading(true)
     const form = new FormData(); form.append('file', file); form.append('session_id', sessionId)
-    try { onResult(await (await fetch('/analyze', { method:'POST', body:form })).json()) }
+    try { onResult(await (await fetch(`${API_BASE}/analyze`, { method:'POST', body:form })).json()) }
     catch (e) { onResult({ error:e.message }) }
     finally { setLoading(false) }
   }
@@ -204,13 +206,13 @@ function SessionHistory() {
   const [selectedId, setSelectedId] = useState(null)
 
   const loadSessions = async () => {
-    try { setSessions(await (await fetch('/sessions')).json()) }
+    try { setSessions(await (await fetch(`${API_BASE}/sessions`)).json()) }
     catch { setSessions([]) }
   }
 
   const loadHistory = async (sid) => {
     setSelectedId(sid)
-    try { setSelectedHistory(await (await fetch(`/history/${sid}`)).json()) }
+    try { setSelectedHistory(await (await fetch(`${API_BASE}/history/${sid}`)).json()) }
     catch { setSelectedHistory([]) }
   }
 
