@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -71,6 +71,11 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+
+@app.head("/health")
+def health_head():
+    return Response(status_code=200)
 
 
 @app.post("/analyze")
