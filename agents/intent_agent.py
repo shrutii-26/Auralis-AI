@@ -31,7 +31,7 @@ def intent_agent(state: AgentState) -> dict:
 
     try:
         llm = ChatGroq(
-            model=os.getenv("INTENT_MODEL", "llama-3.1-8b-instant"),
+            model=os.getenv("INTENT_MODEL", "openai/gpt-oss-120b"),
             api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1,
         )
